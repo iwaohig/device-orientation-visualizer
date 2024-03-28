@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>device-orientation-visualizer</title>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        #startButton {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            outline: none;
+            transition: background-color 0.3s ease;
+        }
+
+        #startButton:hover {
+            background-color: #0056b3;
+        }
+
+        #dataDisplay {
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 80%;
+            text-align: center;
+        }
+
+        #chartContainer {
+            width: 90%;
+            max-width: 600px;
+            height: 400px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<button id="startButton" onclick="startMeasurement()">開始</button>
+<div id="dataDisplay">センサーデータがここに表示されます</div>
+<div id="chartContainer"></div>
+
+<script>
+    google.charts.load('current', {'packages':['corechart']});
+    let isMeasuring = false;
+    const measureDuration = 5000; // 測定時間（ミリ秒）
+    let measureData = [['Time', 'Alpha', 'Beta', 'Gamma']]; // 測定データの初期化用
+
+    function startMeasurement() {
+        if (isMeasuring) return;
+        isMeasuring = true;
+        measureData = [['Time', 'Alpha', 'Beta', 'Gamma']]; // 測定データの初期化
+        document.getElementById('startButton').style.display = 'none';
+        countdown(3);
+    }
+
+    function countdown(count) {
+        document.getElementById('dataDisplay').innerText = count > 0 ? count : '測定開始!';
+        if (count > 0) {
+            setTimeout(() => countdown(count - 1), 1000);
+        } else {
+            beginMeasurement();
+        }
+    }
+
+    function beginMeasurement() {
+        const startTime = Date.now();
+        const handleOrientationEvent = (event) => {
+            const alpha = event.alpha;
+            const beta = event.beta;
+            const gamma = event.gamma;
+            const currentTime = (Date.now() - startTime) / 1000;
+            measureData.push([currentTime, alpha, beta, gamma]);
+            // 測定中の値を表示
+            document.getElementById('dataDisplay').innerText = `Alpha: ${alpha.toFixed(2)}, Beta: ${beta.toFixed(2)}, Gamma: ${gamma.toFixed(2)}`;
+        };
+
+        window.addEventListener('deviceorientation', handleOrientationEvent);
+
+        setTimeout(() => {
+            window.removeEventListener('deviceorientation', handleOrientationEvent);
+            isMeasuring = false;
+            document.getElementById('dataDisplay').innerText = '測定完了';
+            drawChart(); // 測定完了後すぐにグラフを表示
+            // 測定完了後は開始ボタンを非表示にする
+            // document.getElementById('startButton').style.display = 'block';
+        }, measureDuration);
+    }
+
+    function drawChart() {
+        const data = google.visualization.arrayToDataTable(measureData);
+        const options = {
+            title: 'デバイスの動きの推移',
+            curveType: 'function',
+            legend: { position: 'bottom' }
+        };
+        const chart = new google.visualization.LineChart(document.getElementById('chartContainer'));
+        chart.draw(data, options);
+    }
+</script>
+
+</body>
+</html>
